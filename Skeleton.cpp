@@ -366,20 +366,31 @@ struct CMSpline
 		if (nCtrlPoints >= 3)
 		{
 			nVertices = 0; // ujraszamoljuk
-			for (int i = 0; i < nCtrlPoints; i++) // nem baj, hogy nem nCtrlPoints - 1, hiszen 1-gyel mindig tobb van ( utolso = elso )
+			for (int i = 0; i <= nCtrlPoints; i++) // nem baj, hogy nem nCtrlPoints, hiszen 1-gyel mindig tobb van ( utolso = elso )
 			{
 				for (int j = 0; j < RESOLUTION; j++)
 				{
 					float deltaTime = ts[i + 1] - ts[i];
-					vec4 point = r(ts[i] * j * deltaTime / RESOLUTION);
+					vec4 point = r(ts[i] + j * deltaTime / RESOLUTION);
 					AddVertexPoint(wVertex.v[0], wVertex.v[1]);
 				}
 			}
 		}
+		
+		printInfo();
 
 		// copy data to the GPU
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
+	}
+	void printInfo()
+	{
+		for (int i = 0; i <= nCtrlPoints; i++)
+		{
+			printf("X: %f, Y: %f, t: %f\n", ctrlPoints[i].v[0], ctrlPoints[i].v[1], ts[i]);
+		}
+		printf("\nnCtrlPoints: %d\n", nCtrlPoints);
+		printf("nVertices: %d\n\n", nVertices);
 	}
 	vec4 r(float t)
 	{
@@ -389,18 +400,46 @@ struct CMSpline
 			{
 				vec4 p0 = ctrlPoints[i];
 				vec4 v0;
-				float t0;
+				float t0 = ts[i];
 
 				vec4 p1 = ctrlPoints[i + 1];
 				vec4 v1;
-				float t1;
+				float t1 = ts[i+1];
+
+				if (i != 0) // amugy a kezdosebesseg 0
+				{
+					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
+				}
+				else if (i + 1 != nCtrlPoints) // amugy a vegsebesseg 0
+				{
+					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
+				}
+				else
+				{
+					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
+					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
+				}
+				return Hermite(p0, v0, t0, p1, v1, t1, t);
 			}
 		}
+	}
+	vec4 Hermite(vec4 p0, vec4 v0, float t0, vec4 p1, vec4 v1, float t1, float t)
+	{
+		vec4 a0 = p0;
+		vec4 a1 = v0;
+		vec4 a2 = (p1 - p0) * 3 / pow(t1 - t0, 2) - (v1 + v0 * 2) / (t1 - t0);
+		vec4 a3 = (p0 - p1) * 2 / pow(t1 - t0, 3) + (v1 + v0) / pow(t1 - t0, 2);
+
+		return a3 * pow(t - t0, 3) + a2 * pow(t - t0, 2) + a1 * (t - t0) + a0;
+	}
+	vec4 Velocity(float tension, vec4 r0, float t0, vec4 r1, float t1, vec4 r2, float t2)
+	{
+		return ((r2 - r1) / (t2 - t1) + (r1 - r0) / (t1 - t0)) * ((1 - tension) / 2);
 	}
 	void AddTrailingCtrlPoint()
 	{
 		ctrlPoints[nCtrlPoints] = ctrlPoints[0];
-		ts[nCtrlPoints] = ts[0] + 0.5f;
+		ts[nCtrlPoints] = ts[nCtrlPoints - 1] + 0.5f;
 	}
 	void AddCtrlPoint(float wX, float wY)
 	{
@@ -488,7 +527,7 @@ void onDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
 	triangle.Draw();
-	//lineStrip.Draw();
+	lineStrip.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
