@@ -347,14 +347,14 @@ struct CMSpline
 		}
 	}
 	void AddPoint(float cX, float cY) {
-		if (nCtrlPoints >= MAX_CTRL_POINT_COUNT - 1) return; // utolso es elso ctrlPoint megegyezik
+		if (nCtrlPoints >= MAX_CTRL_POINT_COUNT) return;
 
 		// attranszformaljuk vilag koordinatarendszerbe (ezert kell az inverz)
 		// Pinv --> Projekcios inv transzf, Vinv --> View
 		// w prefix --> wolrd coord
 		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
 
-		if (nCtrlPoints <= MAX_CTRL_POINT_COUNT - 1) // az utolso helyet meg kell hagyni, mert oda szurjuk be az "elsot"
+		if (nCtrlPoints <= MAX_CTRL_POINT_COUNT)
 		{
 			AddCtrlPoint(wVertex.v[0], wVertex.v[1]);
 			AddTrailingCtrlPoint();
@@ -363,16 +363,17 @@ struct CMSpline
 		{
 			return;
 		}
-		if (nCtrlPoints >= 3)
+		if (nCtrlPoints >= 4) 
 		{
 			nVertices = 0; // ujraszamoljuk
-			for (int i = 0; i <= nCtrlPoints; i++) // nem baj, hogy nem nCtrlPoints, hiszen 1-gyel mindig tobb van ( utolso = elso )
+			for (int i = 0; i < nCtrlPoints - 1; i++) // nem baj, hogy nem nCtrlPoints, hiszen 1-gyel mindig tobb van ( utolso = elso )
 			{
 				for (int j = 0; j < RESOLUTION; j++)
 				{
 					float deltaTime = ts[i + 1] - ts[i];
+					printf("%f\n", ts[i] + j * deltaTime / RESOLUTION);
 					vec4 point = r(ts[i] + j * deltaTime / RESOLUTION);
-					AddVertexPoint(wVertex.v[0], wVertex.v[1]);
+					AddVertexPoint(point.v[0], point.v[1]);
 				}
 			}
 		}
@@ -385,16 +386,20 @@ struct CMSpline
 	}
 	void printInfo()
 	{
-		for (int i = 0; i <= nCtrlPoints; i++)
+		for (int i = 0; i < nCtrlPoints; i++)
 		{
 			printf("X: %f, Y: %f, t: %f\n", ctrlPoints[i].v[0], ctrlPoints[i].v[1], ts[i]);
+			for (int j = 0; j < RESOLUTION; j++)
+			{
+				printf("    X: %f, Y: %f\n", vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*RESOLUTION], vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*RESOLUTION + 1]);
+			}
 		}
 		printf("\nnCtrlPoints: %d\n", nCtrlPoints);
 		printf("nVertices: %d\n\n", nVertices);
 	}
 	vec4 r(float t)
 	{
-		for (int i = 0; i < nCtrlPoints; i++)
+		for (int i = 0; i < nCtrlPoints - 1; i++)
 		{
 			if (ts[i] <= t && ts[i + 1])
 			{
@@ -406,11 +411,11 @@ struct CMSpline
 				vec4 v1;
 				float t1 = ts[i+1];
 
-				if (i != 0) // amugy a kezdosebesseg 0
+				if (i == 0) // amugy a kezdosebesseg 0
 				{
 					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
 				}
-				else if (i + 1 != nCtrlPoints) // amugy a vegsebesseg 0
+				else if (i == nCtrlPoints - 1) // amugy a vegsebesseg 0
 				{
 					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
 				}
@@ -419,7 +424,8 @@ struct CMSpline
 					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
 					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
 				}
-				return Hermite(p0, v0, t0, p1, v1, t1, t);
+				vec4 hermite =  Hermite(p0, v0, t0, p1, v1, t1, t);
+				return hermite;
 			}
 		}
 	}
@@ -438,8 +444,26 @@ struct CMSpline
 	}
 	void AddTrailingCtrlPoint()
 	{
-		ctrlPoints[nCtrlPoints] = ctrlPoints[0];
-		ts[nCtrlPoints] = ts[nCtrlPoints - 1] + 0.5f;
+		if (nCtrlPoints == 1)
+		{
+			ctrlPoints[nCtrlPoints] = ctrlPoints[0];
+			ts[nCtrlPoints] = ts[nCtrlPoints - 1] + 0.5f;
+			nCtrlPoints++;
+		}
+		else
+		{
+			swapTrailingPoints();
+		}
+	}
+	void swapTrailingPoints()
+	{
+		vec4 temp = ctrlPoints[nCtrlPoints - 2];
+		ctrlPoints[nCtrlPoints - 2] = ctrlPoints[nCtrlPoints - 1];
+		ctrlPoints[nCtrlPoints - 1] = temp;
+
+		float time = ts[nCtrlPoints - 1];
+		ts[nCtrlPoints - 2] = ts[nCtrlPoints - 1];
+		ts[nCtrlPoints - 1] = time + 0.5f;
 	}
 	void AddCtrlPoint(float wX, float wY)
 	{
