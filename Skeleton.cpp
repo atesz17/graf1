@@ -351,7 +351,6 @@ struct CMSpline
 
 		// attranszformaljuk vilag koordinatarendszerbe (ezert kell az inverz)
 		// Pinv --> Projekcios inv transzf, Vinv --> View
-		// w prefix --> wolrd coord
 		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
 
 		if (nCtrlPoints <= MAX_CTRL_POINT_COUNT)
@@ -415,7 +414,7 @@ struct CMSpline
 				{
 					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
 				}
-				else if (i == nCtrlPoints - 1) // amugy a vegsebesseg 0
+				else if (i == nCtrlPoints - 2) // amugy a vegsebesseg 0
 				{
 					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
 				}
