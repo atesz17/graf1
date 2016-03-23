@@ -300,31 +300,27 @@ public:
 	}
 };
 
-class Star
+
+const int MAX_CTRL_POINT_COUNT = 20; // 20 - 1 = 19, ami ugyanaz, mint az elso
+const int RESOLUTION = 10; // gorbe felbontasa
+const int FLOAT_IN_VBO = 5;
+const float TENSION = -0.8f;
+
+struct CMSpline
 {
-	Triangle parts[7];
-	float sX, sY; // pulzal
-	float wTx, wTy; // mozog (translation)
-	float phi; // forog
-public:
+	GLuint vao, vbo;
+	float vertexData[(MAX_CTRL_POINT_COUNT)*FLOAT_IN_VBO*RESOLUTION];
+	int nVertices;
+	vec4 ctrlPoints[MAX_CTRL_POINT_COUNT];
+	int nCtrlPoints;
+	float ts[MAX_CTRL_POINT_COUNT];
+	CMSpline()
+	{
+		nVertices = 0;
+		nCtrlPoints = 0;
+	}
 	void Create()
 	{
-	}
-	void Draw()
-	{
-	}
-};
-
-class LineStrip {
-public:
-	GLuint vao, vbo;        // vertex array object, vertex buffer object
-	float  vertexData[1000 + 50]; // interleaved data of coordinates and colors
-	int    nVertices;       // number of vertices
-
-	LineStrip() {
-		nVertices = 0;
-	}
-	void Create() {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
@@ -338,30 +334,8 @@ public:
 		// Map attribute array 1 to the color data of the interleaved vbo
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
 	}
-
-	void AddVertexPoint(float cX, float cY) {
-		if (nVertices >= 200)
-		{
-			printf("max vertex points");
-			return;
-		}
-
-		//vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
-		vec4 wVertex = vec4(cX, cY);
-		// fill interleaved data
-		vertexData[5 * nVertices] = wVertex.v[0];
-		vertexData[5 * nVertices + 1] = wVertex.v[1];
-		vertexData[5 * nVertices + 2] = 1; // red
-		vertexData[5 * nVertices + 3] = 1; // green
-		vertexData[5 * nVertices + 4] = 0; // blue
-		nVertices++;
-		// copy data to the GPU
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
-	}
-
 	void Draw() {
-		if (nVertices > 0) {
+		if (nCtrlPoints > 2) {
 			mat4 VPTransform = camera.V() * camera.P();
 
 			int location = glGetUniformLocation(shaderProgram, "MVP");
@@ -372,141 +346,84 @@ public:
 			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
 		}
 	}
-};
+	void AddPoint(float cX, float cY) {
+		if (nCtrlPoints >= MAX_CTRL_POINT_COUNT - 1) return; // utolso es elso ctrlPoint megegyezik
 
-class CMSpline : public LineStrip
-{
-	vec4 ctrlPoints[20];
-	int ctrlPointCount;
-	float ts[20];
+		// attranszformaljuk vilag koordinatarendszerbe (ezert kell az inverz)
+		// Pinv --> Projekcios inv transzf, Vinv --> View
+		// w prefix --> wolrd coord
+		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
 
-public:
-	CMSpline()
-	{
-		ctrlPointCount = 0;
-	}
-
-	void addCtrlPoint(float cX, float cY)
-	{
-		if (ctrlPointCount < 20)
+		if (nCtrlPoints <= MAX_CTRL_POINT_COUNT - 1) // az utolso helyet meg kell hagyni, mert oda szurjuk be az "elsot"
 		{
-			vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
-			printf("%f %f\n", wVertex.v[0], wVertex.v[1]);
-			ctrlPoints[ctrlPointCount] = vec4(wVertex.v[0], wVertex.v[1]);
-			long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
-			float sec = time / 1000.0f;				// convert msec to sec
-			ts[ctrlPointCount] = sec;
-			ctrlPointCount++;
+			AddCtrlPoint(wVertex.v[0], wVertex.v[1]);
+			AddTrailingCtrlPoint();
 		}
 		else
 		{
-			printf("max ctrl point");
+			return;
 		}
-	}
-	void Draw() {
-		if (ctrlPointCount > 2) {
-			mat4 VPTransform = camera.V() * camera.P();
-
-			int location = glGetUniformLocation(shaderProgram, "MVP");
-			if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, VPTransform);
-			else printf("uniform MVP cannot be set\n");
-
-			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_LOOP, 0, nVertices);
-		}
-	}
-	void AddPoint(float cX, float cY)
-	{
-		addCtrlPoint(cX, cY);
-		if (ctrlPointCount >= 3)
+		if (nCtrlPoints >= 3)
 		{
-			nVertices = 0;
-			for (int i = 0; i < ctrlPointCount - 1; i++)
+			nVertices = 0; // ujraszamoljuk
+			for (int i = 0; i < nCtrlPoints; i++) // nem baj, hogy nem nCtrlPoints - 1, hiszen 1-gyel mindig tobb van ( utolso = elso )
 			{
-				for (int j = 0; j < 10; j++)
+				for (int j = 0; j < RESOLUTION; j++)
 				{
 					float deltaTime = ts[i + 1] - ts[i];
-					vec4 point = r(ts[i] + j * deltaTime / 10);
-					AddVertexPoint(point.v[0], point.v[1]);
+					vec4 point = r(ts[i] * j * deltaTime / RESOLUTION);
+					AddVertexPoint(wVertex.v[0], wVertex.v[1]);
 				}
 			}
-			printf("%d\n", nVertices);
-			printf("%d\n", ctrlPointCount);
-			// connect tail with head
-			connectTailWithHead();
 		}
-	}
-	void connectTailWithHead()
-	{
-		float deltaTime = 0.5f;
-		vec4 head = ctrlPoints[0];
-		vec4 tail = ctrlPoints[ctrlPointCount - 1];
 
-		vec4 tailVelocity = GetCMVelocity(-0.8,
-			ctrlPoints[ctrlPointCount - 2].v[0], ctrlPoints[ctrlPointCount - 2].v[1], ts[ctrlPointCount - 2],
-			ctrlPoints[ctrlPointCount - 1].v[0], ctrlPoints[ctrlPointCount - 1].v[1], ts[ctrlPointCount - 1],
-			ctrlPoints[0].v[0], ctrlPoints[0].v[1], ts[ctrlPointCount-1] + deltaTime);
-		vec4 headVelocity; // 0
-		for (int i = 0; i < 10; i++)
-		{
-			float t = ts[ctrlPointCount - 1] + i*deltaTime / 10;
-			vec4 point = Hermite(tail, tailVelocity, ts[ctrlPointCount - 1], head, headVelocity, ts[ctrlPointCount - 1] + deltaTime, t);
-			AddVertexPoint(point.v[0], point.v[1]);
-		}
-	}
-	vec4 GetCMVelocity(float tension, float x0, float y0, float t0, float x1, float y1, float t1, float x2, float y2, float t2)
-	{
-		vec4 r0 = vec4(x0, y0);
-		vec4 r1 = vec4(x1, y1);
-		vec4 r2 = vec4(x2, y2);
-		vec4 v0 = ((r2 - r1) / (t2 - t1) + (r1 - r0) / (t1 - t0)) * ((1 - tension) / 2);
-		return v0;
-	}
-	vec4 Hermite(vec4 p0, vec4 v0, float t0,
-		vec4 p1, vec4 v1, float t1,
-		float t)
-	{
-		vec4 a0 = p0;
-		vec4 a1 = v0;
-		vec4 a2 = (p1 - p0) * 3 / pow(t1 - t0, 2) - (v1 + v0 * 2) / (t1 - t0);
-		vec4 a3 = (p0 - p1) * 2 / pow(t1 - t0, 3) + (v1 + v0) / pow(t1 - t0, 2);
-
-		return a3 * pow(t - t0, 3) + a2 * pow(t - t0, 2) + a1 * (t - t0) + a0;
+		// copy data to the GPU
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
 	}
 	vec4 r(float t)
 	{
-		for (int i = 0; i < ctrlPointCount - 1; i++)
+		for (int i = 0; i < nCtrlPoints; i++)
 		{
-			if (ts[i] <= t && t <= ts[i + 1])
+			if (ts[i] <= t && ts[i + 1])
 			{
 				vec4 p0 = ctrlPoints[i];
-				vec4 p1 = ctrlPoints[i + 1];
+				vec4 v0;
+				float t0;
 
-				vec4 v0, v1;
-				// elso pont
-				if (i == 0)
-				{
-					v1 = GetCMVelocity(-0.8, p0.v[0], p0.v[1], ts[i], p1.v[0], p1.v[1], ts[i + 1], ctrlPoints[i + 2].v[0], ctrlPoints[i + 2].v[1], ts[i + 2]);
-				}
-				// utolso
-				else if (i == ctrlPointCount - 2)
-				{
-					v0 = GetCMVelocity(-0.8, ctrlPoints[i - 1].v[0], ctrlPoints[i - 1].v[1], ts[i - 1], p0.v[0], p0.v[1], ts[i], p1.v[0], p1.v[1], ts[i + 1]);
-				}
-				else
-				{
-					v0 = GetCMVelocity(-0.8, ctrlPoints[i - 1].v[0], ctrlPoints[i - 1].v[1], ts[i - 1], p0.v[0], p0.v[1], ts[i], p1.v[0], p1.v[1], ts[i + 1]);
-					v1 = GetCMVelocity(-0.8, p0.v[0], p0.v[1], ts[i], p1.v[0], p1.v[1], ts[i + 1], ctrlPoints[i + 2].v[0], ctrlPoints[i + 2].v[1], ts[i + 2]);
-				}
-				return Hermite(p0, v0, ts[i], p1, v1, ts[i + 1], t);
+				vec4 p1 = ctrlPoints[i + 1];
+				vec4 v1;
+				float t1;
 			}
 		}
+	}
+	void AddTrailingCtrlPoint()
+	{
+		ctrlPoints[nCtrlPoints] = ctrlPoints[0];
+		ts[nCtrlPoints] = ts[0] + 0.5f;
+	}
+	void AddCtrlPoint(float wX, float wY)
+	{
+		ctrlPoints[nCtrlPoints].v[0] = wX;
+		ctrlPoints[nCtrlPoints].v[1] = wY;
+		
+		ts[nCtrlPoints] = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+
+		nCtrlPoints++;
+	}
+	void AddVertexPoint(float wX, float wY)
+	{
+		vertexData[5 * nVertices] = wX;
+		vertexData[5 * nVertices + 1] = wY;
+		vertexData[5 * nVertices + 2] = 1; // red
+		vertexData[5 * nVertices + 3] = 1; // green
+		vertexData[5 * nVertices + 4] = 0; // blue
+		nVertices++;
 	}
 };
 
 // The virtual world: collection of two objects
 Triangle triangle;
-Star star;
 CMSpline lineStrip;
 
 // Initialization, create an OpenGL context
@@ -516,7 +433,6 @@ void onInitialization() {
 	// Create objects by setting up their vertex data on the GPU
 	triangle.Create();
 	lineStrip.Create();
-	star.Create();
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -572,8 +488,7 @@ void onDisplay() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
 	triangle.Draw();
-	star.Draw();
-	lineStrip.Draw();
+	//lineStrip.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
