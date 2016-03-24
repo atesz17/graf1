@@ -388,9 +388,14 @@ struct CMSpline
 		for (int i = 0; i < nCtrlPoints; i++)
 		{
 			printf("X: %f, Y: %f, t: %f\n", ctrlPoints[i].v[0], ctrlPoints[i].v[1], ts[i]);
-			for (int j = 0; j < RESOLUTION; j++)
+			if (i != nCtrlPoints - 1)
 			{
-				printf("    X: %f, Y: %f\n", vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*RESOLUTION], vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*RESOLUTION + 1]);
+				for (int j = 0; j < RESOLUTION; j++)
+				{
+					printf("    X: %f, Y: %f\n",
+						vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*FLOAT_IN_VBO],
+						vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*FLOAT_IN_VBO + 1]);
+				}
 			}
 		}
 		printf("\nnCtrlPoints: %d\n", nCtrlPoints);
