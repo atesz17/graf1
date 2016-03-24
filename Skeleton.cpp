@@ -276,7 +276,7 @@ public:
 	}
 
 	void Animate(float t) {
-		sx = 1 * sinf(t); // *sinf(t);
+		sx = 1; // *sinf(t);
 		sy = 1; // *cosf(t);
 		wTx = 0; // 4 * cosf(t / 2);
 		wTy = 0; // 4 * sinf(t / 2);
@@ -300,6 +300,40 @@ public:
 	}
 };
 
+const int STAR_VERTICES_COUNT = 7; // 7 agu csillag
+
+class Star
+{
+	Triangle parts[STAR_VERTICES_COUNT];
+	float pulseRate;
+public:
+	Star(float pPulseRate = 1.0f)
+	{
+		pulseRate = pPulseRate;
+		Animate(0);
+	}
+	void Create()
+	{
+		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+		{
+			parts[i].Create();
+		}
+	}
+	void Animate(float t)
+	{
+		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+		{
+			parts[i].Animate(t);
+		}
+	}
+	void Draw()
+	{
+		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+		{
+			parts[i].Draw();
+		}
+	}
+};
 
 const int MAX_CTRL_POINT_COUNT = 20; // 20 - 1 = 19, ami ugyanaz, mint az elso
 const int RESOLUTION = 10; // gorbe felbontasa
@@ -501,16 +535,18 @@ struct CMSpline
 };
 
 // The virtual world: collection of two objects
-Triangle triangle;
+//Triangle triangle;
 CMSpline lineStrip;
+Star star;
 
 // Initialization, create an OpenGL context
 void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 
 	// Create objects by setting up their vertex data on the GPU
-	triangle.Create();
+	//triangle.Create();
 	lineStrip.Create();
+	star.Create();
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -565,8 +601,9 @@ void onDisplay() {
 	glClearColor(0, 0, 0, 0);							// background color 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
 
-	triangle.Draw();
+	//triangle.Draw();
 	lineStrip.Draw();
+	star.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
@@ -599,7 +636,8 @@ void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
 	float sec = time / 1000.0f;				// convert msec to sec
 	camera.Animate(sec);					// animate the camera
-	triangle.Animate(sec);					// animate the triangle object
+	//triangle.Animate(sec);					// animate the triangle object
+	star.Animate(sec);
 	glutPostRedisplay();					// redraw the scene
 }
 
