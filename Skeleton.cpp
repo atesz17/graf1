@@ -308,10 +308,12 @@ class Star
 {
 	Triangle parts[STAR_VERTICES_COUNT];
 	float pulseRate;
+	bool isMainStar;
 public:
-	Star(float pPulseRate = 1.0f)
+	Star(bool pIsMainStar, float pPulseRate = 1.0f)
 	{
 		pulseRate = pPulseRate;
+		isMainStar = pIsMainStar;
 		Animate(0);
 	}
 	void Create(float r, float g, float b)
@@ -327,7 +329,10 @@ public:
 		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
 		{
 			float phi = (i * deltaDegree) * M_PI / 180; // radian
-			parts[i].Animate(t, phi);
+			if (isMainStar)
+			{
+				parts[i].Animate(t, phi);
+			}
 		}
 	}
 	void Draw()
@@ -541,7 +546,7 @@ struct CMSpline
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star;
+Star star(true);
 
 // Initialization, create an OpenGL context
 void onInitialization() {
