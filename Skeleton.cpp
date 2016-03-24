@@ -252,7 +252,7 @@ public:
 
 		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
-		static float vertexCoords[] = { -1, 0, 1, 0, 0, 3 };	// vertex data on the CPU
+		static float vertexCoords[] = { -0.65, 0, 0.65, 0, 0, 3 };	// vertex data on the CPU
 		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
 			sizeof(vertexCoords),  // number of the vbo in bytes
 			vertexCoords,		   // address of the data array on the CPU
@@ -302,7 +302,7 @@ public:
 	}
 };
 
-const int STAR_VERTICES_COUNT = 7; // 7 agu csillag
+const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
 
 class Star
 {
