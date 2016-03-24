@@ -237,9 +237,10 @@ class Triangle {
 	unsigned int vao;	// vertex array object id
 	float sx, sy;		// scaling
 	float wTx, wTy;		// translation
+	float phi;
 public:
 	Triangle() {
-		Animate(0);
+		Animate(0, 0);
 	}
 
 	void Create(float r, float g, float b) {
@@ -275,16 +276,17 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
 	}
 
-	void Animate(float t) {
+	void Animate(float t, float pPhi) {
 		sx = 1; // *sinf(t);
 		sy = 1; // *cosf(t);
 		wTx = 0; // 4 * cosf(t / 2);
 		wTy = 0; // 4 * sinf(t / 2);
+		phi = pPhi;
 	}
 
 	void Draw() {
-		mat4 M(sx, 0, 0, 0,
-			0, sy, 0, 0,
+		mat4 M(sx * cos(phi), sin(phi), 0, 0,
+			-sin(phi), sy * cos(phi), 0, 0,
 			0, 0, 0, 0,
 			wTx, wTy, 0, 1); // model matrix
 
@@ -314,18 +316,18 @@ public:
 	}
 	void Create(float r, float g, float b)
 	{
-		float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
 		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
 		{
-			float phi = i * deltaDegree;
 			parts[i].Create(r, g ,b);
 		}
 	}
 	void Animate(float t)
 	{
+		float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
 		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
 		{
-			parts[i].Animate(t);
+			float phi = (i * deltaDegree) * M_PI / 180; // radian
+			parts[i].Animate(t, phi);
 		}
 	}
 	void Draw()
