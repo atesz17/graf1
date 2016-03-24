@@ -281,7 +281,7 @@ public:
 		sy = 1; // *cosf(t);
 		wTx = 0; // 4 * cosf(t / 2);
 		wTy = 0; // 4 * sinf(t / 2);
-		phi = pPhi;
+		phi = pPhi + t;
 	}
 
 	void Draw() {
