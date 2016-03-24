@@ -343,7 +343,7 @@ struct CMSpline
 			else printf("uniform MVP cannot be set\n");
 
 			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
+			glDrawArrays(GL_LINE_LOOP, 0, nVertices);
 		}
 	}
 	void AddPoint(float cX, float cY) {
@@ -365,7 +365,7 @@ struct CMSpline
 		if (nCtrlPoints >= 4) 
 		{
 			nVertices = 0; // ujraszamoljuk
-			for (int i = 0; i < nCtrlPoints - 1; i++) // nem baj, hogy nem nCtrlPoints, hiszen 1-gyel mindig tobb van ( utolso = elso )
+			for (int i = 0; i < nCtrlPoints - 1; i++)
 			{
 				for (int j = 0; j < RESOLUTION; j++)
 				{
@@ -400,31 +400,41 @@ struct CMSpline
 	{
 		for (int i = 0; i < nCtrlPoints - 1; i++)
 		{
-			if (ts[i] <= t && ts[i + 1])
+			if (ts[i] <= t && t <= ts[i + 1])
 			{
-				vec4 p0 = ctrlPoints[i];
-				vec4 v0;
-				float t0 = ts[i];
-
-				vec4 p1 = ctrlPoints[i + 1];
-				vec4 v1;
-				float t1 = ts[i+1];
-
-				if (i == 0) // amugy a kezdosebesseg 0
+				if (i == 0)
 				{
-					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
+					return Hermite(
+						ctrlPoints[0],
+						vec4(),
+						ts[0],
+						ctrlPoints[1],
+						Velocity(TENSION, ctrlPoints[0], ts[0], ctrlPoints[1], ts[1], ctrlPoints[2], ts[2]),
+						ts[1],
+						t);
 				}
-				else if (i == nCtrlPoints - 2) // amugy a vegsebesseg 0
+				else if (i + 2 == nCtrlPoints)
 				{
-					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
+					return Hermite(
+						ctrlPoints[nCtrlPoints - 2],
+						Velocity(TENSION, ctrlPoints[nCtrlPoints - 3], ts[nCtrlPoints - 3], ctrlPoints[nCtrlPoints - 2], ts[nCtrlPoints - 2], ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1]),
+						ts[nCtrlPoints - 2],
+						ctrlPoints[nCtrlPoints - 1],
+						vec4(),
+						ts[nCtrlPoints - 1],
+						t);
 				}
 				else
 				{
-					v0 = Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], p0, t0, p1, t1);
-					v1 = Velocity(TENSION, p0, t0, p1, t1, ctrlPoints[i + 2], ts[i + 2]);
+					return Hermite(
+						ctrlPoints[i],
+						Velocity(TENSION, ctrlPoints[i - 1], ts[i - 1], ctrlPoints[i], ts[i], ctrlPoints[i + 1], ts[i + 1]),
+						ts[i],
+						ctrlPoints[i + 1],
+						Velocity(TENSION, ctrlPoints[i], ts[i], ctrlPoints[i + 1], ts[i + 1], ctrlPoints[i + 2], ts[i + 2]),
+						ts[i + 1],
+						t);
 				}
-				vec4 hermite =  Hermite(p0, v0, t0, p1, v1, t1, t);
-				return hermite;
 			}
 		}
 	}
@@ -439,7 +449,8 @@ struct CMSpline
 	}
 	vec4 Velocity(float tension, vec4 r0, float t0, vec4 r1, float t1, vec4 r2, float t2)
 	{
-		return ((r2 - r1) / (t2 - t1) + (r1 - r0) / (t1 - t0)) * ((1 - tension) / 2);
+		vec4 velocity = ((r2 - r1) / (t2 - t1) + (r1 - r0) / (t1 - t0)) * ((1 - tension) / 2);
+		return velocity;
 	}
 	void AddTrailingCtrlPoint()
 	{
