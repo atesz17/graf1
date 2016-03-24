@@ -242,7 +242,7 @@ public:
 		Animate(0);
 	}
 
-	void Create() {
+	void Create(float r, float g, float b) {
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
 
@@ -266,7 +266,7 @@ public:
 
 		// vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
-		static float vertexColors[] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };	// vertex data on the CPU
+		static float vertexColors[] = { r, g, b, r, g, b, r, g, b };	// vertex data on the CPU
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);	// copy to the GPU
 
 		// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
@@ -312,11 +312,13 @@ public:
 		pulseRate = pPulseRate;
 		Animate(0);
 	}
-	void Create()
+	void Create(float r, float g, float b)
 	{
+		float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
 		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
 		{
-			parts[i].Create();
+			float phi = i * deltaDegree;
+			parts[i].Create(r, g ,b);
 		}
 	}
 	void Animate(float t)
@@ -546,7 +548,7 @@ void onInitialization() {
 	// Create objects by setting up their vertex data on the GPU
 	//triangle.Create();
 	lineStrip.Create();
-	star.Create();
+	star.Create(1, 1, 0); // 1 1 0 --> yellow
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
