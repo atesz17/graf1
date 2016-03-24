@@ -277,7 +277,7 @@ public:
 	}
 
 	void Animate(float t, float pPhi) {
-		sx = 1; // *sinf(t);
+		sx = 1 * pow(sinf(t), 2) + 0.5f; // *sinf(t); // pulzalas --> pow, hogy ne legyen negativ, +konstans, hogy ne tunjon el amikor 0
 		sy = 1; // *cosf(t);
 		wTx = 0; // 4 * cosf(t / 2);
 		wTy = 0; // 4 * sinf(t / 2);
@@ -285,8 +285,8 @@ public:
 	}
 
 	void Draw() {
-		mat4 M(sx * cos(phi), sin(phi), 0, 0,
-			-sin(phi), sy * cos(phi), 0, 0,
+		mat4 M(sx * cos(phi), -sx * sin(phi), 0, 0,
+			-sy * -sin(phi), sy * cos(phi), 0, 0,
 			0, 0, 0, 0,
 			wTx, wTy, 0, 1); // model matrix
 
@@ -303,6 +303,7 @@ public:
 };
 
 const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
+const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
 
 class Star
 {
@@ -314,7 +315,6 @@ public:
 	{
 		pulseRate = pPulseRate;
 		isMainStar = pIsMainStar;
-		Animate(0);
 	}
 	void Create(float r, float g, float b)
 	{
