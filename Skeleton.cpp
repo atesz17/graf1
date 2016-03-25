@@ -243,7 +243,7 @@ public:
 		Animate(0, 0, 0, 0);
 	}
 
-	void Create(float r, float g, float b) {
+	void Create(float r, float g, float b, float pMass) {
 		glGenVertexArrays(1, &vao);	// create 1 vertex array object
 		glBindVertexArray(vao);		// make it active
 
@@ -252,7 +252,7 @@ public:
 
 		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
-		static float vertexCoords[] = { -0.65, 0, 0.65, 0, 0, 3 };	// vertex data on the CPU
+		float vertexCoords[] = { -0.1 * pMass, 0, 0.1 * pMass, 0, 0, 0.5 * pMass };	// vertex data on the CPU
 		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
 			sizeof(vertexCoords),  // number of the vbo in bytes
 			vertexCoords,		   // address of the data array on the CPU
@@ -526,7 +526,7 @@ struct Star
 	{
 		for (int i = 0; i < verticesCount; i++)
 		{
-			parts[i].Create(r, g, b);
+			parts[i].Create(r, g, b, mass);
 		}
 	}
 	void Animate(float t)
@@ -605,7 +605,7 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star(&lineStrip, 0, 10, 10);
+Star star(&lineStrip, 0, 10, 5);
 Star littleOne(0, &star, 17, 2);
 bool isCameraFollowingStar = false;
 
@@ -617,7 +617,7 @@ void onInitialization() {
 	//triangle.Create();
 	lineStrip.Create();
 	star.Create(1, 1, 0); // 1 1 0 --> yellow
-	littleOne.Create(0, 0, 1);
+	littleOne.Create(1, 1, 1);
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
