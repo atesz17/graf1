@@ -240,7 +240,7 @@ class Triangle {
 	float phi;
 public:
 	Triangle() {
-		Animate(0, 0);
+		Animate(0, 0, 0, 0);
 	}
 
 	void Create(float r, float g, float b) {
@@ -276,11 +276,11 @@ public:
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
 	}
 
-	void Animate(float t, float pPhi) {
+	void Animate(float t, float pPhi, float pWTX, float pWTY) {
 		sx = 1 * pow(sinf(t), 2) + 0.5f; // *sinf(t); // pulzalas --> pow, hogy ne legyen negativ, +konstans, hogy ne tunjon el amikor 0
 		sy = 1; // *cosf(t);
-		wTx = 0; // 4 * cosf(t / 2);
-		wTy = 0; // 4 * sinf(t / 2);
+		wTx = pWTX; // 4 * cosf(t / 2);
+		wTy = pWTY; // 4 * sinf(t / 2);
 		phi = pPhi + t;
 	}
 
@@ -302,50 +302,9 @@ public:
 	}
 };
 
-const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
-const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
-
-class Star
-{
-	Triangle parts[STAR_VERTICES_COUNT];
-	float pulseRate;
-	bool isMainStar;
-public:
-	Star(bool pIsMainStar, float pPulseRate = 1.0f)
-	{
-		pulseRate = pPulseRate;
-		isMainStar = pIsMainStar;
-	}
-	void Create(float r, float g, float b)
-	{
-		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
-		{
-			parts[i].Create(r, g ,b);
-		}
-	}
-	void Animate(float t)
-	{
-		float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
-		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
-		{
-			float phi = (i * deltaDegree) * M_PI / 180; // radian
-			if (isMainStar)
-			{
-				parts[i].Animate(t, phi);
-			}
-		}
-	}
-	void Draw()
-	{
-		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
-		{
-			parts[i].Draw();
-		}
-	}
-};
 
 const int MAX_CTRL_POINT_COUNT = 20; // 20 - 1 = 19, ami ugyanaz, mint az elso
-const int RESOLUTION = 10; // gorbe felbontasa
+const int RESOLUTION = 12; // gorbe felbontasa
 const int FLOAT_IN_VBO = 5;
 const float TENSION = -0.8f;
 
@@ -420,7 +379,7 @@ struct CMSpline
 			}
 		}
 		
-		printInfo();
+		// printInfo();
 
 		// copy data to the GPU
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -543,10 +502,68 @@ struct CMSpline
 	}
 };
 
+const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
+const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
+
+class Star
+{
+	Triangle parts[STAR_VERTICES_COUNT];
+	CMSpline *spline;
+public:
+	Star(CMSpline *pSpline = 0)
+	{
+		spline = pSpline;
+	}
+	void Create(float r, float g, float b)
+	{
+		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+		{
+			parts[i].Create(r, g, b);
+		}
+	}
+	void Animate(float t)
+	{
+		if (spline->nCtrlPoints >= 4)
+		{
+			float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
+			for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+			{
+				float phi = (i * deltaDegree) * M_PI / 180; // radian
+				if (spline)
+				{
+					float time = getRelativeTime();
+					vec4 position = spline->r(spline->ts[0] + time);
+					parts[i].Animate(t, phi, position.v[0], position.v[1]);
+				}
+			}
+		}
+	}
+	void Draw()
+	{
+		if (spline->nCtrlPoints >= 4)
+		{
+			for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+			{
+				parts[i].Draw();
+			}
+		}
+	}
+	float getRelativeTime()
+	{
+		float segmentTotalTime = spline->ts[spline->nCtrlPoints - 1] - spline->ts[0];
+		float relTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+		while (relTime >= segmentTotalTime)
+		{
+			relTime -= segmentTotalTime;
+		}
+		//relTime *= segmentTotalTime / STAR_ROAD_TRIP_TIME;
+		return relTime;
+	}
+};
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star(true);
+Star star(&lineStrip);
 
 // Initialization, create an OpenGL context
 void onInitialization() {
