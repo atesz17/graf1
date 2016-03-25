@@ -502,28 +502,29 @@ struct CMSpline
 	}
 };
 
-const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
 const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
 
 struct Star
 {
-	Triangle parts[STAR_VERTICES_COUNT];
+	Triangle parts[20]; // max 20 agu csillag
 	CMSpline *spline;
 	Star *mainStar;
 	bool isActive;
 	float mass;
 	vec4 position; // cameranak kell majd
+	int verticesCount;
 
-	Star(CMSpline *pSpline, Star* pMainStar, float pMass) // focsillagnak van spline-ja, nincs starja, mellekcsillagnak pont forditva
+	Star(CMSpline *pSpline, Star* pMainStar, int pVerticesCount, float pMass) // focsillagnak van spline-ja, nincs starja, mellekcsillagnak pont forditva
 	{
 		spline = pSpline;
 		mainStar = pMainStar;
 		mass = pMass;
 		isActive = false;
+		verticesCount = pVerticesCount;
 	}
 	void Create(float r, float g, float b)
 	{
-		for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+		for (int i = 0; i < verticesCount; i++)
 		{
 			parts[i].Create(r, g, b);
 		}
@@ -534,8 +535,8 @@ struct Star
 		{
 			if (spline->nCtrlPoints >= 4)
 			{
-				float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
-				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				float deltaDegree = 360.0f / verticesCount;
+				for (int i = 0; i < verticesCount; i++)
 				{
 					float phi = (i * deltaDegree) * M_PI / 180; // radian
 					float time = getRelativeTime();
@@ -548,8 +549,8 @@ struct Star
 		{
 			if (mainStar->isActive)
 			{
-				float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
-				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				float deltaDegree = 360.0f / verticesCount;
+				for (int i = 0; i < verticesCount; i++)
 				{
 					float phi = (i * deltaDegree) * M_PI / 180; // radian
 					// itt jon a relativ tomegvonzas szamolasa
@@ -565,7 +566,7 @@ struct Star
 			if (spline->nCtrlPoints >= 4)
 			{
 				isActive = true; // signal a mellekcsillagoknak, hogy rajzolodjanak ki
-				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				for (int i = 0; i < verticesCount; i++)
 				{
 					parts[i].Draw();
 				}
@@ -575,7 +576,7 @@ struct Star
 		{
 			if (mainStar->isActive) // ha a main csillag ki van rajzolva
 			{
-				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				for (int i = 0; i < verticesCount; i++)
 				{
 					parts[i].Draw();
 				}
@@ -604,8 +605,8 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star(&lineStrip, 0, 10);
-Star littleOne(0, &star, 2);
+Star star(&lineStrip, 0, 10, 10);
+Star littleOne(0, &star, 17, 2);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
