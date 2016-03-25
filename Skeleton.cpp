@@ -509,11 +509,17 @@ struct Star
 {
 	Triangle parts[STAR_VERTICES_COUNT];
 	CMSpline *spline;
+	Star *mainStar;
+	bool isActive;
+	float mass;
 	vec4 position; // cameranak kell majd
 
-	Star(CMSpline *pSpline = 0)
+	Star(CMSpline *pSpline, Star* pMainStar, float pMass) // focsillagnak van spline-ja, nincs starja, mellekcsillagnak pont forditva
 	{
 		spline = pSpline;
+		mainStar = pMainStar;
+		mass = pMass;
+		isActive = false;
 	}
 	void Create(float r, float g, float b)
 	{
@@ -524,28 +530,55 @@ struct Star
 	}
 	void Animate(float t)
 	{
-		if (spline->nCtrlPoints >= 4)
+		if (spline)
 		{
-			float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
-			for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+			if (spline->nCtrlPoints >= 4)
 			{
-				float phi = (i * deltaDegree) * M_PI / 180; // radian
-				if (spline)
+				float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
+				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
 				{
+					float phi = (i * deltaDegree) * M_PI / 180; // radian
 					float time = getRelativeTime();
 					position = spline->r(spline->ts[0] + time);
 					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
 		}
+		else if (mainStar)
+		{
+			if (mainStar->isActive)
+			{
+				float deltaDegree = 360.0f / STAR_VERTICES_COUNT;
+				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				{
+					float phi = (i * deltaDegree) * M_PI / 180; // radian
+					// itt jon a relativ tomegvonzas szamolasa
+					parts[i].Animate(t, phi, 0, 0);
+				}
+			}
+		}
 	}
 	void Draw()
 	{
-		if (spline->nCtrlPoints >= 4)
+		if (spline)
 		{
-			for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+			if (spline->nCtrlPoints >= 4)
 			{
-				parts[i].Draw();
+				isActive = true; // signal a mellekcsillagoknak, hogy rajzolodjanak ki
+				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				{
+					parts[i].Draw();
+				}
+			}
+		}
+		else if (mainStar)
+		{
+			if (mainStar->isActive) // ha a main csillag ki van rajzolva
+			{
+				for (int i = 0; i < STAR_VERTICES_COUNT; i++)
+				{
+					parts[i].Draw();
+				}
 			}
 		}
 	}
@@ -571,7 +604,8 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star(&lineStrip);
+Star star(&lineStrip, 0, 10);
+Star littleOne(0, &star, 2);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
@@ -582,6 +616,7 @@ void onInitialization() {
 	//triangle.Create();
 	lineStrip.Create();
 	star.Create(1, 1, 0); // 1 1 0 --> yellow
+	littleOne.Create(0, 0, 1);
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -639,6 +674,7 @@ void onDisplay() {
 	//triangle.Draw();
 	lineStrip.Draw();
 	star.Draw();
+	littleOne.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
@@ -678,6 +714,7 @@ void onIdle() {
 	camera.Animate(sec);					// animate the camera
 	//triangle.Animate(sec);					// animate the triangle object
 	star.Animate(sec);
+	littleOne.Animate(sec);
 	glutPostRedisplay();					// redraw the scene
 }
 
