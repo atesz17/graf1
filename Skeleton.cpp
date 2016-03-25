@@ -267,7 +267,7 @@ public:
 
 		// vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
-		static float vertexColors[] = { r, g, b, r, g, b, r, g, b };	// vertex data on the CPU
+		float vertexColors[] = { r, g, b, r, g, b, r, g, b };	// vertex data on the CPU
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);	// copy to the GPU
 
 		// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
