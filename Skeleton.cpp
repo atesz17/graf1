@@ -189,6 +189,8 @@ struct Camera {
 public:
 	Camera() {
 		Animate(0);
+		wCx = 0;
+		wCy = 0;
 	}
 
 	mat4 V() { // view matrix: translates the center to the origin
@@ -220,8 +222,6 @@ public:
 	}
 
 	void Animate(float t) {
-		wCx = 0; // 10 * cosf(t);
-		wCy = 0;
 		wWx = 20;
 		wWy = 20;
 	}
@@ -505,11 +505,12 @@ struct CMSpline
 const int STAR_VERTICES_COUNT = 7; // hany aga legyen a csillagnak
 const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
 
-class Star
+struct Star
 {
 	Triangle parts[STAR_VERTICES_COUNT];
 	CMSpline *spline;
-public:
+	vec4 position; // cameranak kell majd
+
 	Star(CMSpline *pSpline = 0)
 	{
 		spline = pSpline;
@@ -532,7 +533,7 @@ public:
 				if (spline)
 				{
 					float time = getRelativeTime();
-					vec4 position = spline->r(spline->ts[0] + time);
+					position = spline->r(spline->ts[0] + time);
 					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
@@ -560,10 +561,18 @@ public:
 		return relTime;
 	}
 };
+
+void updateCameraCoords(Camera *cam, Star *star)
+{
+	cam->wCx = star->position.v[0];
+	cam->wCy = star->position.v[1];
+}
+
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
 Star star(&lineStrip);
+bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
 void onInitialization() {
@@ -636,6 +645,7 @@ void onDisplay() {
 // Key of ASCII code pressed
 void onKeyboard(unsigned char key, int pX, int pY) {
 	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
+	else if (key == 32) isCameraFollowingStar = true;
 }
 
 // Key of ASCII code released
@@ -661,6 +671,10 @@ void onMouseMotion(int pX, int pY) {
 void onIdle() {
 	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
 	float sec = time / 1000.0f;				// convert msec to sec
+	if (isCameraFollowingStar)
+	{
+		updateCameraCoords(&camera, &star);
+	}
 	camera.Animate(sec);					// animate the camera
 	//triangle.Animate(sec);					// animate the triangle object
 	star.Animate(sec);
