@@ -1,11 +1,11 @@
-//=============================================================================================
+ï»¿//=============================================================================================
 // Szamitogepes grafika hazi feladat keret. Ervenyes 2016-tol.
 // A //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // sorokon beluli reszben celszeru garazdalkodni, mert a tobbit ugyis toroljuk.
 // A beadott program csak ebben a fajlban lehet, a fajl 1 byte-os ASCII karaktereket tartalmazhat.
 // Tilos:
 // - mast "beincludolni", illetve mas konyvtarat hasznalni
-// - faljmuveleteket vegezni a printf-et kivéve
+// - faljmuveleteket vegezni a printf-et kivï¿½ve
 // - new operatort hivni a lefoglalt adat korrekt felszabaditasa nelkul
 // - felesleges programsorokat a beadott programban hagyni
 // - felesleges kommenteket a beadott programba irni a forrasmegjelolest kommentjeit kiveve
@@ -349,7 +349,7 @@ struct CMSpline
 			else printf("uniform MVP cannot be set\n");
 
 			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
+			glDrawArrays(GL_LINE_LOOP, 0, nVertices);
 		}
 	}
 	void AddPoint(float cX, float cY) {
@@ -368,7 +368,7 @@ struct CMSpline
 		{
 			return;
 		}
-		if (nCtrlPoints >= 4) 
+		if (nCtrlPoints >= 4)
 		{
 			nVertices = 0; // ujraszamoljuk
 			for (int i = 0; i < nCtrlPoints - 1; i++)
@@ -382,7 +382,7 @@ struct CMSpline
 				}
 			}
 		}
-		
+
 		// printInfo();
 
 		// copy data to the GPU
@@ -415,6 +415,7 @@ struct CMSpline
 			{
 				if (i == 0)
 				{
+					/*
 					return Hermite(
 						ctrlPoints[0],
 						vec4(),
@@ -423,6 +424,20 @@ struct CMSpline
 						Velocity(TENSION, ctrlPoints[0], ts[0], ctrlPoints[1], ts[1], ctrlPoints[2], ts[2]),
 						ts[1],
 						t);
+						*/
+					vec4 firstP = ctrlPoints[nCtrlPoints - 1];
+					float firstT = ts[nCtrlPoints - 1];
+					vec4 secondP = ctrlPoints[1];
+					float secondT = ts[nCtrlPoints - 1] + (ts[1] - ts[0]);
+					float time = ts[nCtrlPoints - 1] + t - ts[0];
+					return Hermite(
+						ctrlPoints[nCtrlPoints - 1],
+						Velocity(TENSION, ctrlPoints[nCtrlPoints - 2], ts[nCtrlPoints - 2], ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1], ctrlPoints[1], ts[nCtrlPoints - 1] + (ts[1] - ts[0])),
+						ts[nCtrlPoints - 1],
+						ctrlPoints[1],
+						vec4(),
+						ts[nCtrlPoints - 1] + ts[1] - ts[0],
+						ts[nCtrlPoints - 1] + t-ts[0]);
 				}
 				else if (i + 2 == nCtrlPoints)
 				{
@@ -465,38 +480,18 @@ struct CMSpline
 	}
 	void AddTrailingCtrlPoint()
 	{
-		if (nCtrlPoints == 1) // elso pont klonja
+		if (nCtrlPoints == 1)
 		{
 			ctrlPoints[nCtrlPoints] = ctrlPoints[0];
 			ts[nCtrlPoints] = ts[nCtrlPoints - 1] + 0.5f;
 			nCtrlPoints++;
 		}
-		else if (nCtrlPoints == 3) // masodik pont klonja --> mar bent van a masodik pont is: elso, masodik, elso_klon
-		{
-			swapFirstPointClone(); //kicsereli az utolsot es az utolso elottit
-			ctrlPoints[nCtrlPoints] = ctrlPoints[1];
-			ts[nCtrlPoints] = ts[nCtrlPoints - 1] + (ts[1] - ts[0]);
-			nCtrlPoints++;
-		}
 		else
 		{
-			swapFirstAndSecondPoints();
+			swapTrailingPoints();
 		}
 	}
-	void swapFirstAndSecondPoints()
-	{
-		vec4 temp = ctrlPoints[nCtrlPoints - 1]; // utolso pont
-		ctrlPoints[nCtrlPoints - 1] = ctrlPoints[nCtrlPoints - 2];
-		ctrlPoints[nCtrlPoints - 2] = ctrlPoints[nCtrlPoints - 3];
-		ctrlPoints[nCtrlPoints - 3] = temp;
-
-		float time = ts[nCtrlPoints - 1];
-		ts[nCtrlPoints - 1] = time + 0.5f + (ts[1] - ts[0]);
-		ts[nCtrlPoints - 2] = time + 0.5f;
-		ts[nCtrlPoints - 3] = time;
-
-	}
-	void swapFirstPointClone()
+	void swapTrailingPoints()
 	{
 		vec4 temp = ctrlPoints[nCtrlPoints - 2];
 		ctrlPoints[nCtrlPoints - 2] = ctrlPoints[nCtrlPoints - 1];
@@ -510,7 +505,7 @@ struct CMSpline
 	{
 		ctrlPoints[nCtrlPoints].v[0] = wX;
 		ctrlPoints[nCtrlPoints].v[1] = wY;
-		
+
 		ts[nCtrlPoints] = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 
 		nCtrlPoints++;
