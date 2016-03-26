@@ -511,9 +511,9 @@ struct CMSpline
 	}
 };
 
-const float STAR_ROAD_TRIP_TIME = 10.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
-const float GRAVITATIONAL_CONSTANT = 0.2f;
-const float FRICTION = 0.7f;
+const float STAR_ROAD_TRIP_TIME = 5.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
+const float GRAVITATIONAL_CONSTANT = 0.52f;
+const float FRICTION = 3.0f;
 
 struct Star
 {
@@ -637,9 +637,9 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star Polaris(&lineStrip, 0, 10, 3);
-Star Sirius(0, &Polaris, 17, 1.2);
-Star Rigel(0, &Polaris, 12, 1.9);
+Star Polaris(&lineStrip, 0, 8, 3);
+Star Sirius(0, &Polaris, 9, 1.2);
+Star Rigel(0, &Polaris, 10, 1.9);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
