@@ -506,8 +506,8 @@ struct CMSpline
 	}
 };
 
-const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
-const float GRAVITATIONAL_CONSTANT = 0.4f;
+const float STAR_ROAD_TRIP_TIME = 10.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
+const float GRAVITATIONAL_CONSTANT = 0.2f;
 const float FRICTION = 0.7f;
 
 struct Star
@@ -614,11 +614,11 @@ struct Star
 	{
 		float segmentTotalTime = spline->ts[spline->nCtrlPoints - 1] - spline->ts[0];
 		float relTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-		while (relTime >= segmentTotalTime)
+		while (relTime >= STAR_ROAD_TRIP_TIME)
 		{
-			relTime -= segmentTotalTime;
+			relTime -= STAR_ROAD_TRIP_TIME;
 		}
-		//relTime *= segmentTotalTime / STAR_ROAD_TRIP_TIME;
+		relTime = segmentTotalTime / STAR_ROAD_TRIP_TIME * relTime;
 		return relTime;
 	}
 };
