@@ -634,7 +634,7 @@ void updateCameraCoords(Camera *cam, Star *star)
 CMSpline lineStrip;
 Star Polaris(&lineStrip, 0, 10, 3);
 Star Sirius(0, &Polaris, 17, 1.2);
-Star Rigel(0, &Polaris, 12, 1.6);
+Star Rigel(0, &Polaris, 12, 1.9);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
@@ -646,7 +646,9 @@ void onInitialization() {
 	lineStrip.Create();
 	Polaris.Create(1, 1, 0); // 1 1 0 --> yellow
 	Sirius.Create(1, 1, 1);
+	Sirius.position = vec4(2, 2);
 	Rigel.Create(0.5f, 0.6f, 0.7f);
+	Rigel.position = vec4(-8, -9);
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
