@@ -349,7 +349,7 @@ struct CMSpline
 			else printf("uniform MVP cannot be set\n");
 
 			glBindVertexArray(vao);
-			glDrawArrays(GL_LINE_LOOP, 0, nVertices);
+			glDrawArrays(GL_LINE_STRIP, 0, nVertices);
 		}
 	}
 	void AddPoint(float cX, float cY) {
@@ -465,18 +465,38 @@ struct CMSpline
 	}
 	void AddTrailingCtrlPoint()
 	{
-		if (nCtrlPoints == 1)
+		if (nCtrlPoints == 1) // elso pont klonja
 		{
 			ctrlPoints[nCtrlPoints] = ctrlPoints[0];
 			ts[nCtrlPoints] = ts[nCtrlPoints - 1] + 0.5f;
 			nCtrlPoints++;
 		}
+		else if (nCtrlPoints == 3) // masodik pont klonja --> mar bent van a masodik pont is: elso, masodik, elso_klon
+		{
+			swapFirstPointClone(); //kicsereli az utolsot es az utolso elottit
+			ctrlPoints[nCtrlPoints] = ctrlPoints[1];
+			ts[nCtrlPoints] = ts[nCtrlPoints - 1] + (ts[1] - ts[0]);
+			nCtrlPoints++;
+		}
 		else
 		{
-			swapTrailingPoints();
+			swapFirstAndSecondPoints();
 		}
 	}
-	void swapTrailingPoints()
+	void swapFirstAndSecondPoints()
+	{
+		vec4 temp = ctrlPoints[nCtrlPoints - 1]; // utolso pont
+		ctrlPoints[nCtrlPoints - 1] = ctrlPoints[nCtrlPoints - 2];
+		ctrlPoints[nCtrlPoints - 2] = ctrlPoints[nCtrlPoints - 3];
+		ctrlPoints[nCtrlPoints - 3] = temp;
+
+		float time = ts[nCtrlPoints - 1];
+		ts[nCtrlPoints - 1] = time + 0.5f + (ts[1] - ts[0]);
+		ts[nCtrlPoints - 2] = time + 0.5f;
+		ts[nCtrlPoints - 3] = time;
+
+	}
+	void swapFirstPointClone()
 	{
 		vec4 temp = ctrlPoints[nCtrlPoints - 2];
 		ctrlPoints[nCtrlPoints - 2] = ctrlPoints[nCtrlPoints - 1];
