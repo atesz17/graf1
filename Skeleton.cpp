@@ -415,29 +415,19 @@ struct CMSpline
 			{
 				if (i == 0)
 				{
-					/*
-					return Hermite(
-						ctrlPoints[0],
-						vec4(),
-						ts[0],
-						ctrlPoints[1],
-						Velocity(TENSION, ctrlPoints[0], ts[0], ctrlPoints[1], ts[1], ctrlPoints[2], ts[2]),
-						ts[1],
-						t);
-						*/
 					vec4 firstP = ctrlPoints[nCtrlPoints - 1];
 					float firstT = ts[nCtrlPoints - 1];
 					vec4 secondP = ctrlPoints[1];
 					float secondT = ts[nCtrlPoints - 1] + (ts[1] - ts[0]);
 					float time = ts[nCtrlPoints - 1] + t - ts[0];
 					return Hermite(
-						ctrlPoints[nCtrlPoints - 1],
+						firstP,
 						Velocity(TENSION, ctrlPoints[nCtrlPoints - 2], ts[nCtrlPoints - 2], ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1], ctrlPoints[1], ts[nCtrlPoints - 1] + (ts[1] - ts[0])),
-						ts[nCtrlPoints - 1],
-						ctrlPoints[1],
-						vec4(),
-						ts[nCtrlPoints - 1] + ts[1] - ts[0],
-						ts[nCtrlPoints - 1] + t-ts[0]);
+						firstT,
+						secondP,
+						Velocity(TENSION, ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1], ctrlPoints[1], ts[nCtrlPoints - 1] + ts[1] - ts[0], ctrlPoints[2], ts[nCtrlPoints - 1] + ts[2] - ts[0]),
+						secondT,
+						time);
 				}
 				else if (i + 2 == nCtrlPoints)
 				{
@@ -446,7 +436,7 @@ struct CMSpline
 						Velocity(TENSION, ctrlPoints[nCtrlPoints - 3], ts[nCtrlPoints - 3], ctrlPoints[nCtrlPoints - 2], ts[nCtrlPoints - 2], ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1]),
 						ts[nCtrlPoints - 2],
 						ctrlPoints[nCtrlPoints - 1],
-						vec4(),
+						Velocity(TENSION, ctrlPoints[nCtrlPoints - 2], ts[nCtrlPoints - 2], ctrlPoints[nCtrlPoints - 1], ts[nCtrlPoints - 1], ctrlPoints[1], ts[nCtrlPoints - 1] + ts[1] - ts[0]),
 						ts[nCtrlPoints - 1],
 						t);
 				}
