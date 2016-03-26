@@ -180,6 +180,10 @@ struct vec4 {
 	{
 		return vec4(v[0] / num, v[1] / num, v[2] / num);
 	}
+	float length()
+	{
+		return sqrt(v[0] * v[0] + v[1] * v[1]);
+	}
 };
 
 // 2D camera
@@ -503,6 +507,8 @@ struct CMSpline
 };
 
 const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
+const float GRAVITATIONAL_CONSTANT = 0.05f;
+const float FRICTION = 0.2f;
 
 struct Star
 {
@@ -511,8 +517,10 @@ struct Star
 	Star *mainStar;
 	bool isActive;
 	float mass;
-	vec4 position; // cameranak kell majd
+	vec4 position;
+	vec4 velocity;
 	int verticesCount;
+	float prevTime;
 
 	Star(CMSpline *pSpline, Star* pMainStar, int pVerticesCount, float pMass) // focsillagnak van spline-ja, nincs starja, mellekcsillagnak pont forditva
 	{
@@ -521,6 +529,7 @@ struct Star
 		mass = pMass;
 		isActive = false;
 		verticesCount = pVerticesCount;
+		prevTime = 0;
 	}
 	void Create(float r, float g, float b)
 	{
@@ -531,7 +540,7 @@ struct Star
 	}
 	void Animate(float t)
 	{
-		if (spline)
+		if (spline) // a focsillag animacioja
 		{
 			if (spline->nCtrlPoints >= 4)
 			{
@@ -545,16 +554,24 @@ struct Star
 				}
 			}
 		}
-		else if (mainStar)
+		else if (mainStar) // mellekcsillag animacioja
 		{
 			if (mainStar->isActive)
 			{
+				if (prevTime == 0.0f) prevTime = t;
+				float dt = t - prevTime;
+				prevTime = t;
 				float deltaDegree = 360.0f / verticesCount;
 				for (int i = 0; i < verticesCount; i++)
 				{
 					float phi = (i * deltaDegree) * M_PI / 180; // radian
+
 					// itt jon a relativ tomegvonzas szamolasa
-					parts[i].Animate(t, phi, 0, 0);
+					vec4 force = getForceBetweenMasses(mainStar);
+					vec4 acceleration = force / mass; // F = ma
+					velocity = velocity + acceleration *dt; // v = v0 + at, de v0 mindig 0
+					position = position + velocity / 2 * dt; // s = s0 + (v0 + v)/2 * t, de s0, v0 mindig 0
+					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
 		}
@@ -583,6 +600,14 @@ struct Star
 			}
 		}
 	}
+	vec4 getForceBetweenMasses(Star* other)
+	{
+		float distance = sqrt(
+			pow(position.v[0] - other->position.v[0], 2) +
+			pow(position.v[1] - other->position.v[1], 2));
+		vec4 normalizedVector = (other->position - position) / distance;
+		return normalizedVector * ((mass * other->mass) / pow(distance, 2)) * GRAVITATIONAL_CONSTANT;
+	}
 	float getRelativeTime()
 	{
 		float segmentTotalTime = spline->ts[spline->nCtrlPoints - 1] - spline->ts[0];
@@ -605,8 +630,9 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star star(&lineStrip, 0, 10, 5);
-Star littleOne(0, &star, 17, 2);
+Star Polaris(&lineStrip, 0, 10, 5);
+Star Sirius(0, &Polaris, 17, 2);
+Star Rigel(0, &Polaris, 12, 3);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
@@ -616,8 +642,9 @@ void onInitialization() {
 	// Create objects by setting up their vertex data on the GPU
 	//triangle.Create();
 	lineStrip.Create();
-	star.Create(1, 1, 0); // 1 1 0 --> yellow
-	littleOne.Create(1, 1, 1);
+	Polaris.Create(1, 1, 0); // 1 1 0 --> yellow
+	Sirius.Create(1, 1, 1);
+	Rigel.Create(0.5f, 0.6f, 0.7f);
 
 	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -674,8 +701,9 @@ void onDisplay() {
 
 	//triangle.Draw();
 	lineStrip.Draw();
-	star.Draw();
-	littleOne.Draw();
+	Polaris.Draw();
+	Sirius.Draw();
+	Rigel.Draw();
 	glutSwapBuffers();									// exchange the two buffers
 }
 
@@ -710,12 +738,13 @@ void onIdle() {
 	float sec = time / 1000.0f;				// convert msec to sec
 	if (isCameraFollowingStar)
 	{
-		updateCameraCoords(&camera, &star);
+		updateCameraCoords(&camera, &Polaris);
 	}
 	camera.Animate(sec);					// animate the camera
 	//triangle.Animate(sec);					// animate the triangle object
-	star.Animate(sec);
-	littleOne.Animate(sec);
+	Polaris.Animate(sec);
+	Sirius.Animate(sec);
+	Rigel.Animate(sec);
 	glutPostRedisplay();					// redraw the scene
 }
 
