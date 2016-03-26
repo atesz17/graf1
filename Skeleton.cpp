@@ -376,7 +376,7 @@ struct CMSpline
 				for (int j = 0; j < RESOLUTION; j++)
 				{
 					float deltaTime = ts[i + 1] - ts[i];
-					printf("%f\n", ts[i] + j * deltaTime / RESOLUTION);
+					//printf("%f\n", ts[i] + j * deltaTime / RESOLUTION);
 					vec4 point = r(ts[i] + j * deltaTime / RESOLUTION);
 					AddVertexPoint(point.v[0], point.v[1]);
 				}
@@ -507,8 +507,8 @@ struct CMSpline
 };
 
 const float STAR_ROAD_TRIP_TIME = 3.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
-const float GRAVITATIONAL_CONSTANT = 0.05f;
-const float FRICTION = 0.2f;
+const float GRAVITATIONAL_CONSTANT = 0.4f;
+const float FRICTION = 0.7f;
 
 struct Star
 {
@@ -568,9 +568,11 @@ struct Star
 
 					// itt jon a relativ tomegvonzas szamolasa
 					vec4 force = getForceBetweenMasses(mainStar);
+					vec4 frictionF = velocity  * FRICTION;
+					force = force - frictionF;
 					vec4 acceleration = force / mass; // F = ma
-					velocity = velocity + acceleration *dt; // v = v0 + at, de v0 mindig 0
-					position = position + velocity / 2 * dt; // s = s0 + (v0 + v)/2 * t, de s0, v0 mindig 0
+					velocity = velocity + acceleration *dt; // v = v0 + at,
+					position = position + velocity * dt; // s = s0 + vt
 					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
@@ -630,9 +632,9 @@ void updateCameraCoords(Camera *cam, Star *star)
 // The virtual world: collection of two objects
 //Triangle triangle;
 CMSpline lineStrip;
-Star Polaris(&lineStrip, 0, 10, 5);
-Star Sirius(0, &Polaris, 17, 2);
-Star Rigel(0, &Polaris, 12, 3);
+Star Polaris(&lineStrip, 0, 10, 3);
+Star Sirius(0, &Polaris, 17, 1.2);
+Star Rigel(0, &Polaris, 12, 1.6);
 bool isCameraFollowingStar = false;
 
 // Initialization, create an OpenGL context
