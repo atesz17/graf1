@@ -110,7 +110,7 @@ const char *fragmentSource = R"(
 	out vec4 fragmentColor;
 
 	void main() {
-		fragmentColor = vec4(color, 1); // extend RGB to RGBA
+		fragmentColor = vec4(color, 1);
 	}
 )";
 
@@ -574,7 +574,6 @@ struct Star
 	{
 		float G = GRAVITATIONAL_CONSTANT;
 		float distance = sqrt(pow(other->position.v[0] - position.v[0], 2) + pow(other->position.v[1] - position.v[1], 2));
-		// forrastol elteres: ha nagyon kicsi a tavolsag, akkor 1-nek allitom be a tavolsagot
 		if (distance < 0.5f) distance = 1;
 		vec4 unitVector = (other->position - position) / distance;
 		float numerator = mass * other->mass;
@@ -612,7 +611,7 @@ void onInitialization() {
 
 	lineStrip.Create();
 	Polaris.Create(1, 1, 0);
-	Sirius.Create(1, 1, 1);
+	Sirius.Create(0, 0.2, 0.8);
 	Sirius.position = vec4(2, 2);
 	Rigel.Create(0.5f, 0.6f, 0.7f);
 	Rigel.position = vec4(-8, -9);
