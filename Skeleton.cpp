@@ -244,26 +244,26 @@ public:
 		unsigned int vbo[2];
 		glGenBuffers(2, &vbo[0]);
 
-		
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 		float vertexCoords[] = { -0.1 * pMass, 0, 0.1 * pMass, 0, 0, 0.5 * pMass };
 		glBufferData(GL_ARRAY_BUFFER,
 			sizeof(vertexCoords),
 			vertexCoords,
 			GL_STATIC_DRAW);
-		
+
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0,			
+		glVertexAttribPointer(0,
 			2, GL_FLOAT,
 			GL_FALSE,
 			0, NULL);
 
-		
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 		float vertexColors[] = { r, g, b, r, g, b, r, g, b };
 		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);
 
-		
+
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
@@ -322,7 +322,7 @@ struct CMSpline
 
 		glEnableVertexAttribArray(0);
 		glEnableVertexAttribArray(1);
-		
+
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
 	}
@@ -492,8 +492,8 @@ struct CMSpline
 };
 
 const float STAR_ROAD_TRIP_TIME = 5.0f;
-const float GRAVITATIONAL_CONSTANT = 0.52f;
-const float FRICTION = 3.0f;
+const float GRAVITATIONAL_CONSTANT = 0.2f;
+const float FRICTION = 0.3f;
 
 struct Star
 {
@@ -552,8 +552,8 @@ struct Star
 					float phi = (i * deltaDegree) * M_PI / 180;
 
 					vec4 force = getForceBetweenMasses(mainStar);
-					vec4 frictionF = velocity  * FRICTION;
-					force = force - frictionF;
+					vec4 forceFriction = velocity * 3 * FRICTION;
+					force = force - forceFriction;
 					vec4 acceleration = force / mass;
 					velocity = velocity + acceleration *dt;
 					position = position + velocity * dt;
@@ -588,11 +588,13 @@ struct Star
 	}
 	vec4 getForceBetweenMasses(Star* other)
 	{
-		float distance = sqrt(
-			pow(position.v[0] - other->position.v[0], 2) +
-			pow(position.v[1] - other->position.v[1], 2));
-		vec4 normalizedVector = (other->position - position) / distance;
-		return normalizedVector * ((mass * other->mass) / pow(distance, 2)) * GRAVITATIONAL_CONSTANT;
+		float G = GRAVITATIONAL_CONSTANT;
+		float distance = sqrt(pow(other->position.v[0] - position.v[0], 2) + pow(other->position.v[1] - position.v[1], 2));
+		if (distance < 0.5f) distance = 1;
+		vec4 unitVector = (other->position - position) / distance;
+		float numerator = mass * other->mass;
+		float denominator = pow(distance, 2);
+		return unitVector * numerator / denominator * G;
 	}
 	float getRelativeTime()
 	{
@@ -614,9 +616,9 @@ void updateCameraCoords(Camera *cam, Star *star)
 }
 
 CMSpline lineStrip;
-Star Polaris(&lineStrip, 0, 8, 3);
-Star Sirius(0, &Polaris, 9, 1.2);
-Star Rigel(0, &Polaris, 10, 1.9);
+Star Polaris(&lineStrip, 0, 8, 7);
+Star Sirius(0, &Polaris, 9, 5);
+Star Rigel(0, &Polaris, 10, 4);
 bool isCameraFollowingStar = false;
 
 
@@ -659,7 +661,7 @@ void onInitialization() {
 	glBindAttribLocation(shaderProgram, 0, "vertexPosition");
 	glBindAttribLocation(shaderProgram, 1, "vertexColor");
 
-	
+
 	glBindFragDataLocation(shaderProgram, 0, "fragmentColor");
 
 	glLinkProgram(shaderProgram);
