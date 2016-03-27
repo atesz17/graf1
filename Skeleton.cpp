@@ -369,24 +369,6 @@ struct CMSpline
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
 	}
-	void printInfo()
-	{
-		for (int i = 0; i < nCtrlPoints; i++)
-		{
-			printf("X: %f, Y: %f, t: %f\n", ctrlPoints[i].v[0], ctrlPoints[i].v[1], ts[i]);
-			if (i != nCtrlPoints - 1)
-			{
-				for (int j = 0; j < RESOLUTION; j++)
-				{
-					printf("    X: %f, Y: %f\n",
-						vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*FLOAT_IN_VBO],
-						vertexData[i * RESOLUTION * FLOAT_IN_VBO + j*FLOAT_IN_VBO + 1]);
-				}
-			}
-		}
-		printf("\nnCtrlPoints: %d\n", nCtrlPoints);
-		printf("nVertices: %d\n\n", nVertices);
-	}
 	vec4 r(float t)
 	{
 		for (int i = 0; i < nCtrlPoints - 1; i++)
@@ -492,8 +474,8 @@ struct CMSpline
 };
 
 const float STAR_ROAD_TRIP_TIME = 5.0f;
-const float GRAVITATIONAL_CONSTANT = 0.2f;
-const float FRICTION = 0.3f;
+const float GRAVITATIONAL_CONSTANT = 0.15f;
+const float FRICTION = 0.8f;
 
 struct Star
 {
@@ -552,7 +534,7 @@ struct Star
 					float phi = (i * deltaDegree) * M_PI / 180;
 
 					vec4 force = getForceBetweenMasses(mainStar);
-					vec4 forceFriction = velocity * 3 * FRICTION;
+					vec4 forceFriction = velocity * FRICTION;
 					force = force - forceFriction;
 					vec4 acceleration = force / mass;
 					velocity = velocity + acceleration *dt;
@@ -586,10 +568,13 @@ struct Star
 			}
 		}
 	}
+	// forras:
+	// https://en.wikipedia.org/wiki/Newton's_law_of_universal_gravitation#Vector_form
 	vec4 getForceBetweenMasses(Star* other)
 	{
 		float G = GRAVITATIONAL_CONSTANT;
 		float distance = sqrt(pow(other->position.v[0] - position.v[0], 2) + pow(other->position.v[1] - position.v[1], 2));
+		// forrastol elteres: ha nagyon kicsi a tavolsag, akkor 1-nek allitom be a tavolsagot
 		if (distance < 0.5f) distance = 1;
 		vec4 unitVector = (other->position - position) / distance;
 		float numerator = mass * other->mass;
