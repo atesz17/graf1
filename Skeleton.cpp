@@ -18,8 +18,8 @@
 //
 // NYILATKOZAT
 // ---------------------------------------------------------------------------------------------
-// Nev    : 
-// Neptun : 
+// Nev    : Papai Attila
+// Neptun : X6YVJM
 // ---------------------------------------------------------------------------------------------
 // ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
 // mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
@@ -54,7 +54,6 @@ const unsigned int windowWidth = 600, windowHeight = 600;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
 
-// OpenGL major and minor versions
 int majorVersion = 3, minorVersion = 0;
 
 void getErrorInfo(unsigned int handle) {
@@ -69,7 +68,6 @@ void getErrorInfo(unsigned int handle) {
 	}
 }
 
-// check if shader could be compiled
 void checkShader(unsigned int shader, char * message) {
 	int OK;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &OK);
@@ -79,7 +77,6 @@ void checkShader(unsigned int shader, char * message) {
 	}
 }
 
-// check if shader could be linked
 void checkLinking(unsigned int program) {
 	int OK;
 	glGetProgramiv(program, GL_LINK_STATUS, &OK);
@@ -89,37 +86,34 @@ void checkLinking(unsigned int program) {
 	}
 }
 
-// vertex shader in GLSL
 const char *vertexSource = R"(
 	#version 130
     precision highp float;
 
-	uniform mat4 MVP;			// Model-View-Projection matrix in row-major format
+	uniform mat4 MVP;
 
-	in vec2 vertexPosition;		// variable input from Attrib Array selected by glBindAttribLocation
-	in vec3 vertexColor;	    // variable input from Attrib Array selected by glBindAttribLocation
-	out vec3 color;				// output attribute
+	in vec2 vertexPosition;
+	in vec3 vertexColor;
+	out vec3 color;
 
 	void main() {
-		color = vertexColor;														// copy color from input to output
-		gl_Position = vec4(vertexPosition.x, vertexPosition.y, 0, 1) * MVP; 		// transform to clipping space
+		color = vertexColor;
+		gl_Position = vec4(vertexPosition.x, vertexPosition.y, 0, 1) * MVP;
 	}
 )";
 
-// fragment shader in GLSL
 const char *fragmentSource = R"(
 	#version 130
     precision highp float;
 
-	in vec3 color;				// variable input: interpolated color of vertex shader
-	out vec4 fragmentColor;		// output that goes to the raster memory as told by glBindFragDataLocation
+	in vec3 color;
+	out vec4 fragmentColor;
 
 	void main() {
 		fragmentColor = vec4(color, 1); // extend RGB to RGBA
 	}
 )";
 
-// row-major matrix 4x4
 struct mat4 {
 	float m[4][4];
 public:
@@ -148,7 +142,6 @@ public:
 };
 
 
-// 3D point in homogeneous coordinates
 struct vec4 {
 	float v[4];
 
@@ -186,10 +179,9 @@ struct vec4 {
 	}
 };
 
-// 2D camera
 struct Camera {
-	float wCx, wCy;	// center in world coordinates
-	float wWx, wWy;	// width and height in world coordinates
+	float wCx, wCy;
+	float wWx, wWy;
 public:
 	Camera() {
 		Animate(0);
@@ -197,28 +189,28 @@ public:
 		wCy = 0;
 	}
 
-	mat4 V() { // view matrix: translates the center to the origin
+	mat4 V() {
 		return mat4(1, 0, 0, 0,
 			0, 1, 0, 0,
 			0, 0, 1, 0,
 			-wCx, -wCy, 0, 1);
 	}
 
-	mat4 P() { // projection matrix: scales it to be a square of edge length 2
+	mat4 P() {
 		return mat4(2 / wWx, 0, 0, 0,
 			0, 2 / wWy, 0, 0,
 			0, 0, 1, 0,
 			0, 0, 0, 1);
 	}
 
-	mat4 Vinv() { // inverse view matrix
+	mat4 Vinv() {
 		return mat4(1, 0, 0, 0,
 			0, 1, 0, 0,
 			0, 0, 1, 0,
 			wCx, wCy, 0, 1);
 	}
 
-	mat4 Pinv() { // inverse projection matrix
+	mat4 Pinv() {
 		return mat4(wWx / 2, 0, 0, 0,
 			0, wWy / 2, 0, 0,
 			0, 0, 1, 0,
@@ -231,16 +223,14 @@ public:
 	}
 };
 
-// 2D camera
 Camera camera;
 
-// handle of the shader program
 unsigned int shaderProgram;
 
 class Triangle {
-	unsigned int vao;	// vertex array object id
-	float sx, sy;		// scaling
-	float wTx, wTy;		// translation
+	unsigned int vao;
+	float sx, sy;
+	float wTx, wTy;
 	float phi;
 public:
 	Triangle() {
@@ -248,43 +238,41 @@ public:
 	}
 
 	void Create(float r, float g, float b, float pMass) {
-		glGenVertexArrays(1, &vao);	// create 1 vertex array object
-		glBindVertexArray(vao);		// make it active
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
 
-		unsigned int vbo[2];		// vertex buffer objects
-		glGenBuffers(2, &vbo[0]);	// Generate 2 vertex buffer objects
+		unsigned int vbo[2];
+		glGenBuffers(2, &vbo[0]);
 
-		// vertex coordinates: vbo[0] -> Attrib Array 0 -> vertexPosition of the vertex shader
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]); // make it active, it is an array
-		float vertexCoords[] = { -0.1 * pMass, 0, 0.1 * pMass, 0, 0, 0.5 * pMass };	// vertex data on the CPU
-		glBufferData(GL_ARRAY_BUFFER,      // copy to the GPU
-			sizeof(vertexCoords),  // number of the vbo in bytes
-			vertexCoords,		   // address of the data array on the CPU
-			GL_STATIC_DRAW);	   // copy to that part of the memory which is not modified 
-		// Map Attribute Array 0 to the current bound vertex buffer (vbo[0])
+		
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+		float vertexCoords[] = { -0.1 * pMass, 0, 0.1 * pMass, 0, 0, 0.5 * pMass };
+		glBufferData(GL_ARRAY_BUFFER,
+			sizeof(vertexCoords),
+			vertexCoords,
+			GL_STATIC_DRAW);
+		
 		glEnableVertexAttribArray(0);
-		// Data organization of Attribute Array 0 
-		glVertexAttribPointer(0,			// Attribute Array 0
-			2, GL_FLOAT,  // components/attribute, component type
-			GL_FALSE,		// not in fixed point format, do not normalized
-			0, NULL);     // stride and offset: it is tightly packed
+		glVertexAttribPointer(0,			
+			2, GL_FLOAT,
+			GL_FALSE,
+			0, NULL);
 
-		// vertex colors: vbo[1] -> Attrib Array 1 -> vertexColor of the vertex shader
-		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]); // make it active, it is an array
-		float vertexColors[] = { r, g, b, r, g, b, r, g, b };	// vertex data on the CPU
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);	// copy to the GPU
+		
+		glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+		float vertexColors[] = { r, g, b, r, g, b, r, g, b };
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertexColors), vertexColors, GL_STATIC_DRAW);
 
-		// Map Attribute Array 1 to the current bound vertex buffer (vbo[1])
-		glEnableVertexAttribArray(1);  // Vertex position
-		// Data organization of Attribute Array 1
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL); // Attribute Array 1, components/attribute, component type, normalize?, tightly packed
+		
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
 
 	void Animate(float t, float pPhi, float pWTX, float pWTY) {
-		sx = 1 * pow(sinf(t), 2) + 0.5f; // *sinf(t); // pulzalas --> pow, hogy ne legyen negativ, +konstans, hogy ne tunjon el amikor 0
-		sy = 1; // *cosf(t);
-		wTx = pWTX; // 4 * cosf(t / 2);
-		wTy = pWTY; // 4 * sinf(t / 2);
+		sx = 1 * pow(sinf(t), 2) + 0.5f;
+		sy = 1;
+		wTx = pWTX;
+		wTy = pWTY;
 		phi = pPhi + t;
 	}
 
@@ -292,23 +280,22 @@ public:
 		mat4 M(sx * cos(phi), -sx * sin(phi), 0, 0,
 			-sy * -sin(phi), sy * cos(phi), 0, 0,
 			0, 0, 0, 0,
-			wTx, wTy, 0, 1); // model matrix
+			wTx, wTy, 0, 1);
 
 		mat4 MVPTransform = M * camera.V() * camera.P();
 
-		// set GPU uniform matrix variable MVP with the content of CPU variable MVPTransform
 		int location = glGetUniformLocation(shaderProgram, "MVP");
-		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVPTransform); // set uniform variable MVP to the MVPTransform
+		if (location >= 0) glUniformMatrix4fv(location, 1, GL_TRUE, MVPTransform);
 		else printf("uniform MVP cannot be set\n");
 
-		glBindVertexArray(vao);	// make the vao and its vbos active playing the role of the data source
-		glDrawArrays(GL_TRIANGLES, 0, 3);	// draw a single triangle with vertices defined in vao
+		glBindVertexArray(vao);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 };
 
 
-const int MAX_CTRL_POINT_COUNT = 20; // 20 - 1 = 19, ami ugyanaz, mint az elso
-const int RESOLUTION = 12; // gorbe felbontasa
+const int MAX_CTRL_POINT_COUNT = 20;
+const int RESOLUTION = 12;
 const int FLOAT_IN_VBO = 5;
 const float TENSION = -0.8f;
 
@@ -330,14 +317,13 @@ struct CMSpline
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
 
-		glGenBuffers(1, &vbo); // Generate 1 vertex buffer object
+		glGenBuffers(1, &vbo);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		// Enable the vertex attribute arrays
-		glEnableVertexAttribArray(0);  // attribute array 0
-		glEnableVertexAttribArray(1);  // attribute array 1
-		// Map attribute array 0 to the vertex data of the interleaved vbo
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0)); // attribute array, components/attribute, component type, normalize?, stride, offset
-		// Map attribute array 1 to the color data of the interleaved vbo
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(0));
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(2 * sizeof(float)));
 	}
 	void Draw() {
@@ -355,8 +341,6 @@ struct CMSpline
 	void AddPoint(float cX, float cY) {
 		if (nCtrlPoints >= MAX_CTRL_POINT_COUNT) return;
 
-		// attranszformaljuk vilag koordinatarendszerbe (ezert kell az inverz)
-		// Pinv --> Projekcios inv transzf, Vinv --> View
 		vec4 wVertex = vec4(cX, cY, 0, 1) * camera.Pinv() * camera.Vinv();
 
 		if (nCtrlPoints <= MAX_CTRL_POINT_COUNT)
@@ -370,22 +354,18 @@ struct CMSpline
 		}
 		if (nCtrlPoints >= 4)
 		{
-			nVertices = 0; // ujraszamoljuk
+			nVertices = 0;
 			for (int i = 0; i < nCtrlPoints - 1; i++)
 			{
 				for (int j = 0; j < RESOLUTION; j++)
 				{
 					float deltaTime = ts[i + 1] - ts[i];
-					//printf("%f\n", ts[i] + j * deltaTime / RESOLUTION);
 					vec4 point = r(ts[i] + j * deltaTime / RESOLUTION);
 					AddVertexPoint(point.v[0], point.v[1]);
 				}
 			}
 		}
 
-		// printInfo();
-
-		// copy data to the GPU
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 		glBufferData(GL_ARRAY_BUFFER, nVertices * 5 * sizeof(float), vertexData, GL_DYNAMIC_DRAW);
 	}
@@ -504,20 +484,20 @@ struct CMSpline
 	{
 		vertexData[5 * nVertices] = wX;
 		vertexData[5 * nVertices + 1] = wY;
-		vertexData[5 * nVertices + 2] = 1; // red
-		vertexData[5 * nVertices + 3] = 1; // green
-		vertexData[5 * nVertices + 4] = 0; // blue
+		vertexData[5 * nVertices + 2] = 1;
+		vertexData[5 * nVertices + 3] = 1;
+		vertexData[5 * nVertices + 4] = 0;
 		nVertices++;
 	}
 };
 
-const float STAR_ROAD_TRIP_TIME = 5.0f; // mennyi ideig tart, mig megtesz egy teljes kort a csillag
+const float STAR_ROAD_TRIP_TIME = 5.0f;
 const float GRAVITATIONAL_CONSTANT = 0.52f;
 const float FRICTION = 3.0f;
 
 struct Star
 {
-	Triangle parts[20]; // max 20 agu csillag
+	Triangle parts[20];
 	CMSpline *spline;
 	Star *mainStar;
 	bool isActive;
@@ -527,7 +507,7 @@ struct Star
 	int verticesCount;
 	float prevTime;
 
-	Star(CMSpline *pSpline, Star* pMainStar, int pVerticesCount, float pMass) // focsillagnak van spline-ja, nincs starja, mellekcsillagnak pont forditva
+	Star(CMSpline *pSpline, Star* pMainStar, int pVerticesCount, float pMass)
 	{
 		spline = pSpline;
 		mainStar = pMainStar;
@@ -545,21 +525,21 @@ struct Star
 	}
 	void Animate(float t)
 	{
-		if (spline) // a focsillag animacioja
+		if (spline)
 		{
 			if (spline->nCtrlPoints >= 4)
 			{
 				float deltaDegree = 360.0f / verticesCount;
 				for (int i = 0; i < verticesCount; i++)
 				{
-					float phi = (i * deltaDegree) * M_PI / 180; // radian
+					float phi = (i * deltaDegree) * M_PI / 180;
 					float time = getRelativeTime();
 					position = spline->r(spline->ts[0] + time);
 					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
 		}
-		else if (mainStar) // mellekcsillag animacioja
+		else if (mainStar)
 		{
 			if (mainStar->isActive)
 			{
@@ -569,15 +549,14 @@ struct Star
 				float deltaDegree = 360.0f / verticesCount;
 				for (int i = 0; i < verticesCount; i++)
 				{
-					float phi = (i * deltaDegree) * M_PI / 180; // radian
+					float phi = (i * deltaDegree) * M_PI / 180;
 
-					// itt jon a relativ tomegvonzas szamolasa
 					vec4 force = getForceBetweenMasses(mainStar);
 					vec4 frictionF = velocity  * FRICTION;
 					force = force - frictionF;
-					vec4 acceleration = force / mass; // F = ma
-					velocity = velocity + acceleration *dt; // v = v0 + at,
-					position = position + velocity * dt; // s = s0 + vt
+					vec4 acceleration = force / mass;
+					velocity = velocity + acceleration *dt;
+					position = position + velocity * dt;
 					parts[i].Animate(t, phi, position.v[0], position.v[1]);
 				}
 			}
@@ -589,7 +568,7 @@ struct Star
 		{
 			if (spline->nCtrlPoints >= 4)
 			{
-				isActive = true; // signal a mellekcsillagoknak, hogy rajzolodjanak ki
+				isActive = true;
 				for (int i = 0; i < verticesCount; i++)
 				{
 					parts[i].Draw();
@@ -598,7 +577,7 @@ struct Star
 		}
 		else if (mainStar)
 		{
-			if (mainStar->isActive) // ha a main csillag ki van rajzolva
+			if (mainStar->isActive)
 			{
 				for (int i = 0; i < verticesCount; i++)
 				{
@@ -634,28 +613,23 @@ void updateCameraCoords(Camera *cam, Star *star)
 	cam->wCy = star->position.v[1];
 }
 
-// The virtual world: collection of two objects
-//Triangle triangle;
 CMSpline lineStrip;
 Star Polaris(&lineStrip, 0, 8, 3);
 Star Sirius(0, &Polaris, 9, 1.2);
 Star Rigel(0, &Polaris, 10, 1.9);
 bool isCameraFollowingStar = false;
 
-// Initialization, create an OpenGL context
+
 void onInitialization() {
 	glViewport(0, 0, windowWidth, windowHeight);
 
-	// Create objects by setting up their vertex data on the GPU
-	//triangle.Create();
 	lineStrip.Create();
-	Polaris.Create(1, 1, 0); // 1 1 0 --> yellow
+	Polaris.Create(1, 1, 0);
 	Sirius.Create(1, 1, 1);
 	Sirius.position = vec4(2, 2);
 	Rigel.Create(0.5f, 0.6f, 0.7f);
 	Rigel.position = vec4(-8, -9);
 
-	// Create vertex shader from string
 	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	if (!vertexShader) {
 		printf("Error in vertex shader creation\n");
@@ -665,7 +639,6 @@ void onInitialization() {
 	glCompileShader(vertexShader);
 	checkShader(vertexShader, "Vertex shader error");
 
-	// Create fragment shader from string
 	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 	if (!fragmentShader) {
 		printf("Error in fragment shader creation\n");
@@ -675,7 +648,6 @@ void onInitialization() {
 	glCompileShader(fragmentShader);
 	checkShader(fragmentShader, "Fragment shader error");
 
-	// Attach shaders to a single program
 	shaderProgram = glCreateProgram();
 	if (!shaderProgram) {
 		printf("Error in shader program creation\n");
@@ -684,17 +656,14 @@ void onInitialization() {
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 
-	// Connect Attrib Arrays to input variables of the vertex shader
-	glBindAttribLocation(shaderProgram, 0, "vertexPosition"); // vertexPosition gets values from Attrib Array 0
-	glBindAttribLocation(shaderProgram, 1, "vertexColor");    // vertexColor gets values from Attrib Array 1
+	glBindAttribLocation(shaderProgram, 0, "vertexPosition");
+	glBindAttribLocation(shaderProgram, 1, "vertexColor");
 
-	// Connect the fragmentColor to the frame buffer memory
-	glBindFragDataLocation(shaderProgram, 0, "fragmentColor");	// fragmentColor goes to the frame buffer memory
+	
+	glBindFragDataLocation(shaderProgram, 0, "fragmentColor");
 
-	// program packaging
 	glLinkProgram(shaderProgram);
 	checkLinking(shaderProgram);
-	// make this program run
 	glUseProgram(shaderProgram);
 }
 
@@ -703,58 +672,51 @@ void onExit() {
 	printf("exit");
 }
 
-// Window has become invalid: Redraw
 void onDisplay() {
-	glClearColor(0, 0, 0, 0);							// background color 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the screen
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//triangle.Draw();
 	lineStrip.Draw();
 	Polaris.Draw();
 	Sirius.Draw();
 	Rigel.Draw();
-	glutSwapBuffers();									// exchange the two buffers
+	glutSwapBuffers();
 }
 
-// Key of ASCII code pressed
+
 void onKeyboard(unsigned char key, int pX, int pY) {
-	if (key == 'd') glutPostRedisplay();         // if d, invalidate display, i.e. redraw
+	if (key == 'd') glutPostRedisplay();
 	else if (key == 32) isCameraFollowingStar = true;
 }
 
-// Key of ASCII code released
 void onKeyboardUp(unsigned char key, int pX, int pY) {
 
 }
 
-// Mouse click event
 void onMouse(int button, int state, int pX, int pY) {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {  // GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON and GLUT_DOWN / GLUT_UP
-		float cX = 2.0f * pX / windowWidth - 1;	// flip y axis
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		float cX = 2.0f * pX / windowWidth - 1;
 		float cY = 1.0f - 2.0f * pY / windowHeight;
 		lineStrip.AddPoint(cX, cY);
-		glutPostRedisplay();     // redraw
+		glutPostRedisplay();
 	}
 }
 
-// Move mouse with key pressed
 void onMouseMotion(int pX, int pY) {
 }
 
-// Idle event indicating that some time elapsed: do animation here
 void onIdle() {
-	long time = glutGet(GLUT_ELAPSED_TIME); // elapsed time since the start of the program
-	float sec = time / 1000.0f;				// convert msec to sec
+	long time = glutGet(GLUT_ELAPSED_TIME);
+	float sec = time / 1000.0f;
 	if (isCameraFollowingStar)
 	{
 		updateCameraCoords(&camera, &Polaris);
 	}
-	camera.Animate(sec);					// animate the camera
-	//triangle.Animate(sec);					// animate the triangle object
+	camera.Animate(sec);
 	Polaris.Animate(sec);
 	Sirius.Animate(sec);
 	Rigel.Animate(sec);
-	glutPostRedisplay();					// redraw the scene
+	glutPostRedisplay();
 }
 
 // Idaig modosithatod...
